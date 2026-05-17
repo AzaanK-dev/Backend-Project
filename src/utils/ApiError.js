@@ -7,7 +7,7 @@ class ApiError extends Error{
         this.data = null;
         this.success = false;
         
-        if(stack){           // Production level code
+        if(stack){           // Production level code - to track errored file
             this.stack = stack;
         }else{
             Error.captureStackTrace(this,this.constructor)
