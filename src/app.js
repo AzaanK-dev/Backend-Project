@@ -1,3 +1,4 @@
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
 
@@ -12,5 +13,13 @@ app.use(express.json({limit:"16kb"})); // configuration limit for amount of data
 app.use(express.urlencoded({extended: true, limit:"16kb"}))  // configuration for data from URL (links)
 app.use(express.static("public"))  // configuration for assets, images,icons etc in 'public' folder
 app.use(cookieParser())  // config for cookies in browser
+
+
+// Routes
+import userRouter from "./routes/user.routes.js";
+
+app.use("/api/v1/users",userRouter)     // declare routes
+// http://localhost:8000//api/v1/users/register
+
 
 export default app;
