@@ -31,7 +31,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     
     // const coverImageLocalPath = req.files?.coverImage[0]?.path        // X throws error 
 
-    let coverImageLocalPath;        // only assign value to coverImageLocalPath if it satisfy condition else keep it empty
+    let coverImageLocalPath;         // only assign value to coverImageLocalPath if it satisfy condition else keep it empty
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage>0){
         coverImageLocalPath = req.files.coverImage[0].path
     }
@@ -59,4 +59,63 @@ const registerUser = asyncHandler(async (req,res)=>{
     )
 })
 
-export default registerUser;
+const generateAccessAndRefreshTokens = async (userId)=>{
+    const user = await User.findById(userId);
+    const accessToken = generateAccessToken();
+    const refreshToken = generateRefreshToken();
+    user.refreshToken = refreshToken;
+    user.save({validateBeforeSave: false})  // 'validateBeforeSave: false' bcz only .save() will expect ALL keys even which we keep hidden by ourselves
+    return {accessToken,refreshToken};
+}
+
+const loginUser = asyncHandler(async (req,res)=>{
+    // getting username || email, password from user
+    // find user in db
+    // password check
+    // access refresh token
+    // send tokens in cookie
+
+    const {username,email,password} = req.body
+    if(!(username || email)) throw new ApiError(400,"Username or email are required!");
+
+    const userFound = await User.findOne({
+        $or: [{username},{email}]
+    })
+    if(!userFound) throw new ApiError(404,"User does not exists!");
+    
+    const validPassword = userFound.isPasswordCorrect(password);
+    if(!validPassword) throw new ApiError(401,"Invalid User Credentials!");
+
+    const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(userFound._id)
+    const loggedUser = await User.findById(userFound._id).select("-password -refreshToken")   // remove password refreshToken from user->db
+
+    const cookieOptions = {       // for setting cookies to only modifiable from server (NOT frontend) 
+        httpOnly: true,
+        security: true
+    }
+
+    return res.status(200)
+    .cookie("accessToken",accessToken,cookieOptions)  // setting Cookie
+    .cookie("refreshToken",refreshToken,cookieOptions)
+    .json(
+        new ApiResponse(200,{user: loggedUser,accessToken,refreshToken},"User logged in successfully!") 
+    )     // giving access & refresh tokens in data also bcz it is possinle that user wants to save them, or in mobile app we cant use cookie
+    
+})
+
+const logoutUser = asyncHandler(async (req,res)=>{
+    User.findByIdAndUpdate(req.user._id,{ refreshToken: undefined},{new: true})  // for 1.finding user, 2.delete refreshToken for logout
+    
+    const cookieOptions = {     
+        httpOnly: true,
+        security: true
+    }
+    return res.status(200)
+    .removeCookie(accessToken,cookieOptions)  // deleting Cookie
+    .removeCookie(refreshToken,cookieOptions)  
+    .json(
+        new ApiResponse(200,{},"User logged out successfully!") 
+    )
+})
+
+export { registerUser,loginUser,logoutUser };
