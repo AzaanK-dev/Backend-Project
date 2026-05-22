@@ -61,8 +61,8 @@ const registerUser = asyncHandler(async (req,res)=>{
 
 const generateAccessAndRefreshTokens = async (userId)=>{
     const user = await User.findById(userId);
-    const accessToken = generateAccessToken();
-    const refreshToken = generateRefreshToken();
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
     user.refreshToken = refreshToken;
     user.save({validateBeforeSave: false})  // 'validateBeforeSave: false' bcz only .save() will expect ALL keys even which we keep hidden by ourselves
     return {accessToken,refreshToken};
@@ -91,7 +91,7 @@ const loginUser = asyncHandler(async (req,res)=>{
 
     const cookieOptions = {       // for setting cookies to only modifiable from server (NOT frontend) 
         httpOnly: true,
-        security: true
+        secure: true
     }
 
     return res.status(200)
@@ -104,15 +104,16 @@ const loginUser = asyncHandler(async (req,res)=>{
 })
 
 const logoutUser = asyncHandler(async (req,res)=>{
+    // req.user is accesible bcz of auth.middleware (which tells user is authenticated/logged in)
     User.findByIdAndUpdate(req.user._id,{ refreshToken: undefined},{new: true})  // for 1.finding user, 2.delete refreshToken for logout
     
     const cookieOptions = {     
         httpOnly: true,
-        security: true
+        secure: true
     }
     return res.status(200)
-    .removeCookie(accessToken,cookieOptions)  // deleting Cookie
-    .removeCookie(refreshToken,cookieOptions)  
+    .clearCookie("accessToken",cookieOptions)  // deleting Cookie
+    .clearCookie("refreshToken",cookieOptions)  
     .json(
         new ApiResponse(200,{},"User logged out successfully!") 
     )
