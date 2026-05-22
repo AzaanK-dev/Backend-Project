@@ -11,12 +11,12 @@ const uploadOnCloudinary = async (filePath)=>{      // takes file path of tempor
     try{
         if(!filePath) return null;
         const response = await cloudinary.uploader.upload(filePath,{    
-            resource_type = "auto"
+            resource_type : "auto"
         })
-        console.log("File uploaded successfully: ",response.url);
+        fs.unlinkSync(filePath)
         return response;
     }catch(error){
-        fs.unlinkSync(filePath);  // file upload fail on cloudnary SO DELETE it from local storage also
+        fs.unlinkSync(filePath);  // file upload fail on cloudnary SO DELETE it synchronously from local storage also
         return null;
     }
 }

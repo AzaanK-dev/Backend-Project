@@ -46,11 +46,10 @@ const userSchema = new Schema({
     ]
 }, {timestamps: true})  // for createdAt & updatedAt
 
-userSchema.pre("save", async function(next){              // using pre hook | *arrow function cant be use here 
-    if(!this.isModified("password")) return next()   // only encrypt password if it is changed. NOT on each 'save'
+userSchema.pre("save", async function(){              // using pre hook | *arrow function cant be use here 
+    if(!this.isModified("password")) return;   // only encrypt password if it is changed. NOT on each 'save'
     
     this.password = await bcrypt.hash(this.password,8)
-    next()
 })
 
 userSchema.methods.isPasswordCorrect = async function(password){      // custom method for password check in middleware

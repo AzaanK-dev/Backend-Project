@@ -16,19 +16,25 @@ const registerUser = asyncHandler(async (req,res)=>{
     // return res
 
     const {username,email,fullName,password} = req.body  
-    console.log(email);
     
     if([username,email,fullName,password].some(field => field?.trim() === "" )){   
         throw new ApiError(400,"Required fields are empty!")      // .some() checks whether any elemnet from array performs the function(test) assigned to it. if 1 true all true..
     }
-
-    const existedUser = User.find({  // find the same user in database
+    
+    
+    const existedUser = await User.findOne({  // find the same user in database... findOne returns only a single object while find returns array
         $or: [{username} , {email}]  // username || email
     })
-    if(existedUser)  throw new ApiError(409,"User already exists with same email or username!")   
+    if(existedUser) throw new ApiError(409,"User already exists with same email or username!")   
 
-    const avatarLocalPath = req.files?.avatar[0]?.path              // avatar[0] gives object, .path give path of that object
-    const coverImageLocalPath = req.files?.coverImage[0]?.path        // '?' check optionally value preent or not 
+    const avatarLocalPath = req.files?.avatar[0]?.path              // avatar[0] gives object, .path give path of that object, '?' check optionally value present or not 
+    
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path        // X throws error 
+
+    let coverImageLocalPath;        // only assign value to coverImageLocalPath if it satisfy condition else keep it empty
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage>0){
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
     if(!avatarLocalPath) throw new ApiError(400,"Avatar is required!")    
 
     const avatar = await uploadOnCloudinary(avatarLocalPath);      // uploading on cloudinary
