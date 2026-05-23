@@ -199,4 +199,80 @@ const updateCoverImage = asyncHandler(async (req,res)=>{
     return res.status(200).json(new ApiResponse(200,{},"Cover image is updated"))
 })
 
-export { registerUser,loginUser,logoutUser,renewAccessToken,changePassword,updateAccountDetails,updateAvatar,updateCoverImage };
+const getChannel = asyncHandler(async (req,res)=>{
+    const {username} = req.params  // channnel name from link
+    if(!username) throw new ApiError(400,"Username is missing!")
+
+    // aggregation pipelines (stages that process documents)
+    const channel = await User.aggregate(
+        {   // gets user(channel) whose username matches
+            $match: {       
+                username: username.toLowerCase()  
+            }
+        },
+        {   // Fetch all users who subscribed to this channel (followers)
+            $lookup: {      
+                from: "subscriptions",  // 'Subscription' model written as 'subscriptions' in DB
+                localField: "_id",
+                foreignField: "channel",  // Find all subscriptions where this user is the channel
+                as: "subscribers"
+            }
+        },
+        {   // Fetch all users whom this channel has subscribed to (following)
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber", // find all subscriptions where this user is subscriber
+                as: "subscribedTo"
+            }
+        },
+        {   // add these extra feilds in 'User' model
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                subscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {         // chechk current user has subscribed this channel or not
+                    $cond: {        // just like if/else
+                        if: {$in: [req.user._id, "$subscribers.subscriber"]},  
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {   // only set selected fields from 'User' to "Channel" 
+            $project: {
+                username: 1,    // to select just set flagged 1
+                email: 1,
+                fullName: 1,
+                avatar: 1,
+                coverImage: 1,
+                subscribersCount: 1,
+                subscribedToCount: 1,
+                isSubscribed: 1
+            }
+        }
+    )
+
+    if(!channel?.length) throw new ApiError(404,"Channel does not exists!")
+
+    return res.status(200).json(new ApiResponse(200,channel[0],"Channel data fetched successfully"))
+})
+
+
+export { 
+    registerUser,
+    loginUser,
+    logoutUser,
+    renewAccessToken,
+    // update account details
+    changePassword,
+    updateAccountDetails,
+    updateAvatar,
+    updateCoverImage,
+
+    getChannel,
+};
