@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js"
 import uploadOnCloudinary from "../utils/cloudinary.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 
 const registerUser = asyncHandler(async (req,res)=>{
     // getting all detailos from frontend / postman
@@ -70,7 +71,7 @@ const generateAccessAndRefreshTokens = async (userId)=>{
     return {accessToken,refreshToken};
 }
 
-const cookieOptions = {    // for setting cookies to only modifiable from server (NOT frontend)     
+const cookieOptions = {     // for setting cookies to only modifiable from server (NOT frontend)     
     httpOnly: true,
     secure: true
 }
@@ -143,6 +144,7 @@ const renewAccessToken = asyncHandler(async (req,res)=>{   // endpoint for refre
 
 })
 
+// update account details
 const changePassword = asyncHandler(async (req,res)=>{
     const {oldPassword,newPassword} = req.body;     // taking both from frontend
     const user = await User.findById(req.user._id)
@@ -262,17 +264,63 @@ const getChannel = asyncHandler(async (req,res)=>{
     return res.status(200).json(new ApiResponse(200,channel[0],"Channel data fetched successfully"))
 })
 
+const getWatchHistory = asyncHandler(async (req,res)=>{
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: mongoose.Types.ObjectId(req.user._id) // converting _id string into object using mongoose and then comparing with _id
+            }
+        },
+        {   // fetch _id of videos as watchHistory 
+            $lookup: {  
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [     // nested pipeline for fetching owner of each video bcz in videos it is from user model (check video model)
+                    {       
+                        $lookup:{
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {       // to get selected fields only
+                                    $project: {
+                                        username: 1,
+                                        fullName: 1,
+                                        avatar: 1
+                                    }
+                                },
+                                {
+                                    $addFields: { 
+                                        owner: {
+                                            $first: "$owner"  // Converts owner array into a single object.  
+                                        }
+                                    }   
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res.status(200).json(new ApiResponse(200,user[0].watchHistory,"Watch history is fetched successfully"))
+})
 
 export { 
     registerUser,
     loginUser,
     logoutUser,
     renewAccessToken,
-    // update account details
+    
     changePassword,
     updateAccountDetails,
     updateAvatar,
     updateCoverImage,
 
     getChannel,
+    getWatchHistory,
 };
