@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
 import uploadOnCloudinary from "../utils/cloudinary.js"
 import ApiResponse from "../utils/ApiResponse.js"
+import jwt from "jsonwebtoken"
 
 const registerUser = asyncHandler(async (req,res)=>{
     // getting all detailos from frontend / postman
@@ -68,6 +69,11 @@ const generateAccessAndRefreshTokens = async (userId)=>{
     return {accessToken,refreshToken};
 }
 
+const cookieOptions = {    // for setting cookies to only modifiable from server (NOT frontend)     
+    httpOnly: true,
+    secure: true
+}
+
 const loginUser = asyncHandler(async (req,res)=>{
     // getting username || email, password from user
     // find user in db
@@ -89,11 +95,6 @@ const loginUser = asyncHandler(async (req,res)=>{
     const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(userFound._id)
     const loggedUser = await User.findById(userFound._id).select("-password -refreshToken")   // remove password refreshToken from user->db
 
-    const cookieOptions = {       // for setting cookies to only modifiable from server (NOT frontend) 
-        httpOnly: true,
-        secure: true
-    }
-
     return res.status(200)
     .cookie("accessToken",accessToken,cookieOptions)  // setting Cookie
     .cookie("refreshToken",refreshToken,cookieOptions)
@@ -107,10 +108,6 @@ const logoutUser = asyncHandler(async (req,res)=>{
     // req.user is accesible bcz of auth.middleware (which tells user is authenticated/logged in)
     User.findByIdAndUpdate(req.user._id,{ refreshToken: undefined},{new: true})  // for 1.finding user, 2.delete refreshToken for logout
     
-    const cookieOptions = {     
-        httpOnly: true,
-        secure: true
-    }
     return res.status(200)
     .clearCookie("accessToken",cookieOptions)  // deleting Cookie
     .clearCookie("refreshToken",cookieOptions)  
@@ -119,4 +116,30 @@ const logoutUser = asyncHandler(async (req,res)=>{
     )
 })
 
-export { registerUser,loginUser,logoutUser };
+const renewAccessToken = asyncHandler(async (req,res)=>{   // endpoint for refreshing both tokens after accessToken expires
+    try{
+        const token = req.cookies.refreshToken || req.body.refreshToken
+        if(!token) throw new ApiError(401,"Unauthorized request!")
+        
+        const decodedToken = jwt.verify(token,process.env.REFRESH_TOKEN_SECRET)
+
+        const user = await User.findById(decodedToken?._id)
+        if(!user) throw new ApiError(401,"Invalid refresh token!");
+
+        if(token != user.refreshToken) throw new ApiError(401,"Refresh token is expired or used!");
+
+        const {accessToken,newRefreshToken} = await generateAccessAndRefreshTokens(user._id);
+
+        res.status(200)
+        .cookie("accessToken",accessToken,cookieOptions)
+        .cookie("refreshToken",newRefreshToken,cookieOptions)
+        .json(
+            200, {accessToken,refreshToken: newRefreshToken}, "Tokens are renewed"
+        )
+    }catch(error){
+        throw new ApiError(401,error?.message || "Invlid refresh token!")
+    }
+
+})
+
+export { registerUser,loginUser,logoutUser,renewAccessToken };

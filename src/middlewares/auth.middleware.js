@@ -5,8 +5,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 const verifyJwt = asyncHandler(async (req,res,next)=>{    // for confirming that user is logged in
     try{
-        // in case cookie is absent (as in mobile apps) use header syntax-> Authorization: bearer <token>
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("bearer ","")
+        // in case cookie is absent (as in mobile apps) use header syntax-> Authorization: Bearer <token>
+        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","")
         if(!token) throw new ApiError(401,"Unauthorized request!")
         
         const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
@@ -17,7 +17,7 @@ const verifyJwt = asyncHandler(async (req,res,next)=>{    // for confirming that
         req.user = user;  
         next();   // tell abput reference of next method
     }catch(error){
-        throw new ApiError(401,error?.message||"Authorization failed due to invalid access token!")
+        throw new ApiError(401,error?.message||"Authentication failed due to invalid access token!")
     }
 })
 
