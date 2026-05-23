@@ -28,7 +28,11 @@ const registerUser = asyncHandler(async (req,res)=>{
     })
     if(existedUser) throw new ApiError(409,"User already exists with same email or username!")   
 
-    const avatarLocalPath = req.files?.avatar[0]?.path              // avatar[0] gives object, .path give path of that object, '?' check optionally value present or not 
+    const avatarLocalPath = req.files?.avatar[0]?.path           // avatar[0] gives object, .path give path of that object, '?' check optionally value present or not 
+    if(!avatarLocalPath) throw new ApiError(400,"Avatar is required!");   
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);      // uploading on cloudinary
+    if(!avatar) throw new ApiError(400,"Avatar is required!")      
     
     // const coverImageLocalPath = req.files?.coverImage[0]?.path        // X throws error 
 
@@ -36,11 +40,8 @@ const registerUser = asyncHandler(async (req,res)=>{
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage>0){
         coverImageLocalPath = req.files.coverImage[0].path
     }
-    if(!avatarLocalPath) throw new ApiError(400,"Avatar is required!")    
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath);      // uploading on cloudinary
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-    if(!avatar) throw new ApiError(400,"Avatar is required!")      
 
     const user = await User.create({               
         username: username.toLowerCase(),
@@ -134,7 +135,7 @@ const renewAccessToken = asyncHandler(async (req,res)=>{   // endpoint for refre
         .cookie("accessToken",accessToken,cookieOptions)
         .cookie("refreshToken",newRefreshToken,cookieOptions)
         .json(
-            200, {accessToken,refreshToken: newRefreshToken}, "Tokens are renewed"
+            new ApiResponse(200, {accessToken,refreshToken: newRefreshToken}, "Tokens are renewed")
         )
     }catch(error){
         throw new ApiError(401,error?.message || "Invlid refresh token!")
@@ -142,4 +143,60 @@ const renewAccessToken = asyncHandler(async (req,res)=>{   // endpoint for refre
 
 })
 
-export { registerUser,loginUser,logoutUser,renewAccessToken };
+const changePassword = asyncHandler(async (req,res)=>{
+    const {oldPassword,newPassword} = req.body;     // taking both from frontend
+    const user = await User.findById(req.user._id)
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+    if(!isPasswordCorrect) throw new ApiError(400,"Old Password is incorrect!")
+
+    user.password = newPassword;
+    await user.save({validateBeforeSave:false})
+
+    return res.status(200).json(new ApiResponse(200,{},"Password is changed"))
+})
+
+const updateAccountDetails = asyncHandler(async (req,res)=>{
+    const {newEmail,newFullName} = req.body
+    if(!newEmail) throw new ApiError(400,"Email is required!")
+
+    const updateFields = {   // update email
+        email: newEmail
+    }
+    if(newFullName) updateFields.fullName = newFullName;  // update fullname only if provided
+    
+    const user = await User
+    .findByIdAndUpdate(req.user._id, updateFields, {new: true})
+    .select("-password -refreshToken")
+
+    return res.status(200).json(new ApiResponse(200,{},"Account details are updated"))
+})
+
+const updateAvatar = asyncHandler(async (req,res)=>{
+    const newAvatarPath = req.files?.avatar[0].path
+    if(!newAvatarPath) throw new ApiError(400,"Avatar is required!")
+        
+    const newAvatar = await uploadOnCloudinary(newAvatarPath);
+    if(!newAvatar) throw new ApiError(401,"Something went wrong while uploading avatar!")
+
+    const user = await User
+    .findByIdAndUpdate(req.user._id,{ avatar: newAvatar.url },{new: true})
+    .select("-password -refreshToken")
+    
+    return res.status(200).json(new ApiResponse(200,{},"Avatar is updated"))
+})
+
+const updateCoverImage = asyncHandler(async (req,res)=>{
+    const newCoverImagePath = req.files?.coverImage[0].path
+    if(!newCoverImagePath) throw new ApiError(400,"CoverImage is required!") // just bcz we specifically call this method.. OTHERISE cover image is NOT COMPULSORY
+    const newCoverImage = await uploadOnCloudinary(newCoverImagePath);
+    if(!newCoverImage) throw new ApiError(401,"Something went wrong while uploading coverImage!")
+
+    const user = await User
+    .findByIdAndUpdate(req.user._id,{ coverImage: newCoverImage.url },{new: true})
+    .select("-password -refreshToken")
+    
+    return res.status(200).json(new ApiResponse(200,{},"Cover image is updated"))
+})
+
+export { registerUser,loginUser,logoutUser,renewAccessToken,changePassword,updateAccountDetails,updateAvatar,updateCoverImage };
