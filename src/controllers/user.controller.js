@@ -67,7 +67,7 @@ const generateAccessAndRefreshTokens = async (userId)=>{
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
     user.refreshToken = refreshToken;
-    user.save({validateBeforeSave: false})  // 'validateBeforeSave: false' bcz only .save() will expect ALL keys even which we keep hidden by ourselves
+    await user.save({validateBeforeSave: false})  // 'validateBeforeSave: false' bcz only .save() will expect ALL keys even which we keep hidden by ourselves
     return {accessToken,refreshToken};
 }
 
@@ -130,7 +130,7 @@ const renewAccessToken = asyncHandler(async (req,res)=>{   // endpoint for refre
 
         if(token != user.refreshToken) throw new ApiError(401,"Refresh token is expired or used!");
 
-        const {accessToken,newRefreshToken} = await generateAccessAndRefreshTokens(user._id);
+        const {accessToken,refreshToken: newRefreshToken} = await generateAccessAndRefreshTokens(user._id);
 
         res.status(200)
         .cookie("accessToken",accessToken,cookieOptions)
@@ -206,7 +206,7 @@ const getChannel = asyncHandler(async (req,res)=>{
     if(!username) throw new ApiError(400,"Username is missing!")
 
     // aggregation pipelines (stages that process documents)
-    const channel = await User.aggregate(
+    const channel = await User.aggregate([
         {   // gets user(channel) whose username matches
             $match: {       
                 username: username.toLowerCase()  
@@ -257,7 +257,7 @@ const getChannel = asyncHandler(async (req,res)=>{
                 isSubscribed: 1
             }
         }
-    )
+    ])
 
     if(!channel?.length) throw new ApiError(404,"Channel does not exists!")
 
@@ -268,7 +268,7 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
     const user = await User.aggregate([
         {
             $match: {
-                _id: mongoose.Types.ObjectId(req.user._id) // converting _id string into object using mongoose and then comparing with _id
+                _id: new mongoose.Types.ObjectId(req.user._id) // converting _id string into object using mongoose and then comparing with _id
             }
         },
         {   // fetch _id of videos as watchHistory 

@@ -18,13 +18,13 @@ router.route("/login").post(loginUser)
 router.route("/logout").post(verifyJwt,logoutUser)
 router.route("/refresh-token").post(renewAccessToken)
 
-router.route("change-password").patch(verifyJwt,changePassword)    // patch -> to change only specific patch of details
-router.route("update-account-details").patch(verifyJwt,updateAccountDetails)  
+router.route("/change-password").patch(verifyJwt,changePassword)    // patch -> to change only specific user data
+router.route("/update-account-details").patch(verifyJwt,updateAccountDetails)  
 
-router.route("/avatar").patch(verifyJwt,upload.single("avatar"),updateAvatar)  // upload middleware bcz file is required from user
+router.route("/avatar").patch(verifyJwt,upload.single("avatar"),updateAvatar)  // upload middleware bcz file user sends newAvatar file
 router.route("/coverImage").patch(verifyJwt,upload.single("coverImage"),updateCoverImage)
 
-router.route("/channel/:username").get(verifyJwt,getChannel)    // bcz req.params is used in this function so data from link is required
+router.route("/channel/:username").get(verifyJwt,getChannel)    // bcz req.params is used in this function, so data from link is required
 router.route("/history").get(verifyJwt,getWatchHistory)     // get -> bcz no data from user is required
 
 export default router;
