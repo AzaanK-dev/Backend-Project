@@ -38,7 +38,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     // const coverImageLocalPath = req.files?.coverImage[0]?.path        // X throws error 
 
     let coverImageLocalPath;         // only assign value to coverImageLocalPath if it satisfy condition else keep it empty
-    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage>0){
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
         coverImageLocalPath = req.files.coverImage[0].path
     }
 
@@ -58,7 +58,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     if(!createdUser) throw new ApiError(500,"Something went wrong while creating user!");
 
     return res.status(201).json(
-        new ApiResponse(200,createdUser,"User registered successfully! ")
+        new ApiResponse(201,createdUser,"User registered successfully! ")
     )
 })
 
