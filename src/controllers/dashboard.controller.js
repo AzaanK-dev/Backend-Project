@@ -8,7 +8,6 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 
 const getChannelStats = asyncHandler(async (req, res) => {
     const {channelId} = req.params
-    if(!channelId) throw new ApiError(400,"Channel ID is required!")
     const totalSubscribers = await Subscription.countDocuments({channel: channelId})
 
     const videoStats = await Video.aggregate([
@@ -44,8 +43,6 @@ const getChannelStats = asyncHandler(async (req, res) => {
 
 const getChannelVideos = asyncHandler(async (req, res) => {
     const {channelId} = req.params
-    if(!channelId) throw new ApiError(400,"Channel ID is required!")
-
     const channelVideos = await Video.find({owner:channelId})
     return res.status(200).json(new ApiResponse(200,channelVideos,"Channel Videos are fetched successfully"))
 })

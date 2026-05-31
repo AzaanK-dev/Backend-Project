@@ -7,7 +7,6 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 const getVideoComments = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     const {page = 1, limit = 10} = req.query
-    if(!videoId) throw new ApiError(400,"Required fields are empty!")
 
     let pageNo = Number(page)
     let limitNo = Number(limit)
@@ -26,7 +25,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 const addComment = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     const {content} = req.body
-    if(!videoId || !content) throw new ApiError(400,"Required fields are empty!")
+    if(!content?.trim()) throw new ApiError(400,"Content is required!")
 
     const comment = await Comment.create({
         content,
@@ -41,7 +40,7 @@ const addComment = asyncHandler(async (req, res) => {
 const updateComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params
     const {content} = req.body
-    if(!commentId || !content?.trim()) throw new ApiError(400,"Required fields are empty!")
+    if(!content?.trim()) throw new ApiError(400,"Content is required!")
 
     const comment = await Comment.findByIdAndUpdate(commentId,{content},{new:true})
     if(!comment) throw new ApiError(404,"Comment not found!")
@@ -51,8 +50,6 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params
-    if(!commentId) throw new ApiError(400,"Required fields are empty!")
-
     const comment = await Comment.findByIdAndDelete(commentId)
     if(!comment) throw new ApiError(404,"Comment not found!")
     return res.status(200).json(new ApiResponse(200,{},"Comment deleted successfully"))
