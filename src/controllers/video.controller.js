@@ -83,18 +83,22 @@ const updateVideo = asyncHandler(async (req,res)=>{
     const {title,description} = req.body;
 
     if(!videoId) throw new ApiError(400,"Video Id is required!")
-    if(!title || !description) throw new ApiError(400,"Required fields are empty!")
+    if(!title && !description) throw new ApiError(400, "At least one field is required!")
     
     const thumbnailPath = req.files?.thumbnail[0]?.path;
     const thumbnail = await uploadOnCloudinary(thumbnailPath)
 
-    const updateFields = {
-        title,
-        description,
+    const updateFields = {}
+    if(title) updateFields.title = title;
+    if(description) updateFields.description = description;
+
+    if (req.files?.thumbnail?.[0]?.path) {
+        const thumbnail = await uploadOnCloudinary(req.files.thumbnail[0].path)
+        if (thumbnail) updateFields.thumbnail = thumbnail.url
     }
-    if(thumbnail) updateFields.thumbnail = thumbnail.url;
 
     const video = await Video.findByIdAndUpdate(videoId,updateFields,{new:true});
+    if (!video) throw new ApiError(404, "Video not found!")
     res.status(200).json(new ApiResponse(200,video,"Video updated successfully"))
 })
 
