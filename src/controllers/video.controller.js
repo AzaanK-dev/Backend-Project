@@ -45,26 +45,19 @@ const getAllVideos = asyncHandler(async (req,res)=>{
     const allowedSortFields = ["createdAt","views","likes"]
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : "createdAt"; // set "createdAt" as defalut
 
-    const sorting = {                             // .sort() mongodb style
-        [sortField]: sortOrder==="desc" ? -1 : 1   // sortBy = views,createdAt,like fields etc | sortOrder = ascending(asc) /descending(desc)
-    }
-
     let pageNo = Number(page);  // bcz req.query always gives string NOT number
     let limitNo = Number(limit);
     pageNo = pageNo<1 ? 1 : pageNo   // validations to set page & limit
     limitNo = limitNo<1 ? 1 : limitNo
     limitNo = limitNo>50 ? 50 : limitNo
 
-    const pagination = {        
-        skip: (pageNo-1)*limitNo,
-        limit: limitNo
-    }
-
     const allVideos = await Video
     .find(filter)
-    .sort(sorting)
-    .skip(pagination.skip)
-    .limit(pagination.limit)
+    .sort({            // .sort() mongodb style
+        [sortField]: sortOrder==="desc" ? -1 : 1   // sortBy = views,createdAt,like fields etc | sortOrder = ascending(asc) /descending(desc)
+    })
+    .skip((pageNo-1)*limitNo)  // for pagination
+    .limit(limitNo)
 
     const totalVideos = await Video.countDocuments(filter)
     const totalPages = Math.ceil(totalVideos/limitNo)
@@ -72,9 +65,9 @@ const getAllVideos = asyncHandler(async (req,res)=>{
     res.status(200).json(new ApiResponse(200,{
         totalVideos,
         allVideos,
-        page: pageNo, // curr page
+        currentPage: pageNo, 
         totalPages,
-        limitNo
+        limit: limitNo
     },"Videos are fetched successfully"))
 })
 
