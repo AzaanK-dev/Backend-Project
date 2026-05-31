@@ -35,7 +35,47 @@ const uploadVideo = asyncHandler(async (req,res)=>{
 })
 
 const getAllVideos = asyncHandler(async (req,res)=>{
-    const {page=1,limit=10,query,sortBy,sortType,userId} = req.query   // .query comes from URL, use for video search,filter etc 
+    //  http//localhost:8000/api/videos?page=2&limit=5&query=react&sortBy=views&sortType=desc&userId=123
+    const {page=1,limit=10,query,sortBy="createdAt",sortOrder="desc",userId} = req.query   // .query(string) comes from URL, use for search,filter,pagination etc 
+    
+    const filter = {};
+    if(query && query.trim().length>0) filter.$text = {$search: query.trim()}   // set "$text" key in filter object 
+    if(userId) filter.owner = userId
+
+    const allowedSortFields = ["createdAt","views","likes"]
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : "createdAt"; // set "createdAt" as defalut
+
+    const sorting = {                             // .sort() mongodb style
+        [sortField]: sortOrder==="desc" ? -1 : 1   // sortBy = views,createdAt,like fields etc | sortOrder = ascending(asc) /descending(desc)
+    }
+
+    let pageNo = Number(page);  // bcz req.query always gives string NOT number
+    let limitNo = Number(limit);
+    pageNo = pageNo<1 ? 1 : pageNo   // validations to set page & limit
+    limitNo = limitNo<1 ? 1 : limitNo
+    limitNo = limitNo>50 ? 50 : limitNo
+
+    const pagination = {        
+        skip: (pageNo-1)*limitNo,
+        limit: limitNo
+    }
+
+    const allVideos = await Video
+    .find(filter)
+    .sort(sorting)
+    .skip(pagination.skip)
+    .limit(pagination.limit)
+
+    const totalVideos = await Video.countDocuments(filter)
+    const totalPages = Math.ceil(totalVideos/limitNo)
+
+    res.status(200).json(new ApiResponse(200,{
+        totalVideos,
+        allVideos,
+        page: pageNo, // curr page
+        totalPages,
+        limitNo
+    },"Videos are fetched successfully"))
 })
 
 const getVideoById = asyncHandler(async (req,res)=>{
@@ -67,23 +107,40 @@ const updateVideo = asyncHandler(async (req,res)=>{
 
 const deleteVideo = asyncHandler(async (req,res)=>{
     const {videoId} = req.params;
-    const video = await Video.findByIdAndDelete(videoId);
-    if(!video) throw new ApiError(404,"Video not found")
-        
-    await cloudinary.uploader.destroy(video.videoFilePubId,{  // here public_id is used
+    if (!videoId) throw new ApiError(400, "Video ID is required!");
+
+    const video = await Video.findById(videoId);    // find video
+    if(!video) throw new ApiError(404,"Video not found!")
+
+    await cloudinary.uploader.destroy(video.videoFilePubId,{ // delete files from cloudinry using public_id
         resource_type: "video"
     })
     
     await cloudinary.uploader.destroy(video.thumbnailPubId,{
         resource_type: "image"
     })
-        
+
+    await video.deleteOne();  // delete from db
     res.status(200).json(new ApiResponse(200,{},"Video deleted successfully"))
+})
+
+const togglePublishedStatus = asyncHandler(async (req,res)=>{
+    const {videoId} = req.params;
+    if (!videoId) throw new ApiError(400, "Video ID is required!");
+
+    const video = await Video.findById(videoId)
+    if(!video) throw new ApiError(404,"Video not found!")
+
+    video.isPublished = !video.isPublished;     // invert values
+    await video.save()
+    res.status(200).json(new ApiResponse(200,video,"Published Status is toggled"))
 })
 
 export{
     uploadVideo,
+    getAllVideos,
     getVideoById,
     updateVideo,
-    deleteVideo
+    deleteVideo,
+    togglePublishedStatus
 }
