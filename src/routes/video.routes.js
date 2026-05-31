@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
-import { getVideoById, uploadVideo } from "../controllers/video.controller.js";
+import { deleteVideo, getVideoById, updateVideo, uploadVideo } from "../controllers/video.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router()
@@ -11,6 +11,9 @@ router.route("/upload").post(upload.fields([
     {name:"thumbnail", maxCount:1}
 ]),  uploadVideo)
 
-router.route("/video/:videoId").get(getVideoById)
+router.route("/:videoId").get(getVideoById)
+router.route("/update/:videoId").patch(updateVideo)
+router.route("/delete/:videoId").get(deleteVideo)
+
 
 export default router

@@ -20,12 +20,14 @@ const uploadVideo = asyncHandler(async (req,res)=>{
     if(!thumbnail) throw new ApiError(400,"Thumbnail is required!")
 
     const video = await Video.create({
-        videoFile : videoFile.url,
+        videoFile: videoFile.url,
+        videoFilePubId: videoFile.public_id,
         owner: req.user._id,
         title,
         description,
-        duration : videoFile.duration,
+        duration: videoFile.duration,
         thumbnail: thumbnail.url,
+        thumbnailPubId: thumbnail.public_id,
     })
     if(!video) throw new ApiError(500, "Something went wrong while uploading video!");
 
@@ -59,7 +61,7 @@ const updateVideo = asyncHandler(async (req,res)=>{
     }
     if(thumbnail) updateFields.thumbnail = thumbnail.url;
 
-    const video = Video.findByIdAndUpdate(videoId,updateFields,{new:true});
+    const video = await Video.findByIdAndUpdate(videoId,updateFields,{new:true});
     res.status(200).json(new ApiResponse(200,video,"Video updated successfully"))
 })
 
@@ -68,22 +70,20 @@ const deleteVideo = asyncHandler(async (req,res)=>{
     const video = await Video.findByIdAndDelete(videoId);
     if(!video) throw new ApiError(404,"Video not found")
         
-    const videoFileId = video.videoFile.url.split("/",7)
-    cloudinary.uploader.destroy(videoFileId,{
+    await cloudinary.uploader.destroy(video.videoFilePubId,{  // here public_id is used
         resource_type: "video"
     })
     
-    if(video.thumbnail){
-        const thumbnailId = video.thumbnail.url.split("/",7)
-        cloudinary.uploader.destroy(thumbnailId,{
-            resource_type: "image"
-        })
-    }
+    await cloudinary.uploader.destroy(video.thumbnailPubId,{
+        resource_type: "image"
+    })
         
     res.status(200).json(new ApiResponse(200,{},"Video deleted successfully"))
 })
 
 export{
     uploadVideo,
-    getVideoById
+    getVideoById,
+    updateVideo,
+    deleteVideo
 }

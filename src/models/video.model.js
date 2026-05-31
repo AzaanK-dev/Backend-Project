@@ -6,6 +6,9 @@ const videoSchema = new Schema({
         type: String,  // URL from cloudinary
         required: true,
     },
+    videoFilePubId : {
+        type: String,  // publicID of videoFile from cloudinary(for deletion)
+    },
     owner : {
         type: Schema.Types.ObjectId,
         ref: "User"
@@ -13,6 +16,9 @@ const videoSchema = new Schema({
     thumbnail : {
         type: String,  // URL from cloudinary
         required: true,
+    },
+    thumbnailPubId : {
+        type: String,  // publicID of thumbnail from cloudinary
     },
     title : {
         type: String,
