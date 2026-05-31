@@ -13,7 +13,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
         owner: req.user._id,
         videos: []   // empty plalist initially
     })
-    res.status(201).json(new ApiResponse(201,playlist,"Playlist created successfully"))
+    return res.status(201).json(new ApiResponse(201,playlist,"Playlist created successfully"))
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
@@ -28,7 +28,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     },{new:true})
 
     if(!playlist) throw new ApiError(404, "Playlist not found!")
-    res.status(200).json(new ApiResponse(200,playlist,"Video added to playlist successfully"))
+    return res.status(200).json(new ApiResponse(200,playlist,"Video added to playlist successfully"))
 })
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
@@ -40,14 +40,14 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     },{new:true})
 
     if(!playlist) throw new ApiError(404, "Playlist not found!")
-    res.status(200).json(new ApiResponse(200,playlist,"Video removed from playlist successfully"))
+    return res.status(200).json(new ApiResponse(200,playlist,"Video removed from playlist successfully"))
 })
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
     const {userId} = req.params
     if(!userId) throw new ApiError(400,"User is required!")
     const playlists = await Playlist.find({owner: userId});  // filter by userId in owner
-    res.status(200).json(new ApiResponse(200,playlists,"Playlists fetched successfully"))
+    return res.status(200).json(new ApiResponse(200,playlists,"Playlists fetched successfully"))
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
@@ -56,7 +56,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
     const playlist = await Playlist.findById(playlistId);
     if(!playlist) throw new ApiError(404,"Playlist does not found!");
-    res.status(200).json(new ApiResponse(200,video,"Playlist fetched succesfully"))
+    return res.status(200).json(new ApiResponse(200,video,"Playlist fetched succesfully"))
 })
 
 const updatePlaylist = asyncHandler(async (req, res) => {
@@ -72,7 +72,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     const playlist = await Playlist.findByIdAndUpdate(playlistId,updateFields,{new:true})
     if(!playlist) throw new ApiError(404, "Playlist not found!")
     
-    res.status(200).json(new ApiResponse(200,playlist,"Playlist updated successfully"))
+    return res.status(200).json(new ApiResponse(200,playlist,"Playlist updated successfully"))
 })
 
 const deletePlaylist = asyncHandler(async (req, res) => {
@@ -81,5 +81,15 @@ const deletePlaylist = asyncHandler(async (req, res) => {
 
     const playlist = await Playlist.findByIdAndDelete(playlistId)
     if(!playlist) throw new ApiError(404, "Playlist not found!")
-    res.status(200).json(new ApiResponse(200,{},"Playlist deleted successfully"))
+    return res.status(200).json(new ApiResponse(200,{},"Playlist deleted successfully"))
 })
+
+export {
+    createPlaylist,
+    addVideoToPlaylist,
+    removeVideoFromPlaylist,
+    getUserPlaylists,
+    getPlaylistById,
+    updatePlaylist,
+    deletePlaylist,
+}

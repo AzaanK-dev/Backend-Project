@@ -31,7 +31,7 @@ const uploadVideo = asyncHandler(async (req,res)=>{
     })
     if(!video) throw new ApiError(500, "Something went wrong while uploading video!");
 
-    res.status(201).json(new ApiResponse(200,video,"Video uploaded successfully"))
+    return res.status(201).json(new ApiResponse(200,video,"Video uploaded successfully"))
 })
 
 const getAllVideos = asyncHandler(async (req,res)=>{
@@ -62,7 +62,7 @@ const getAllVideos = asyncHandler(async (req,res)=>{
     const totalVideos = await Video.countDocuments(filter)
     const totalPages = Math.ceil(totalVideos/limitNo)
 
-    res.status(200).json(new ApiResponse(200,{
+    return res.status(200).json(new ApiResponse(200,{
         totalVideos,
         allVideos,
         currentPage: pageNo, 
@@ -75,7 +75,7 @@ const getVideoById = asyncHandler(async (req,res)=>{
     const {videoId} = req.params;
     const video = await Video.findById(videoId);
     if(!video) throw new ApiError(404,"Video does not found!");
-    res.status(200).json(new ApiResponse(200,video,"Video fetched succesfully"))
+    return res.status(200).json(new ApiResponse(200,video,"Video fetched succesfully"))
 })
 
 const updateVideo = asyncHandler(async (req,res)=>{
@@ -99,7 +99,7 @@ const updateVideo = asyncHandler(async (req,res)=>{
 
     const video = await Video.findByIdAndUpdate(videoId,updateFields,{new:true});
     if (!video) throw new ApiError(404, "Video not found!")
-    res.status(200).json(new ApiResponse(200,video,"Video updated successfully"))
+    return res.status(200).json(new ApiResponse(200,video,"Video updated successfully"))
 })
 
 const deleteVideo = asyncHandler(async (req,res)=>{
@@ -118,7 +118,7 @@ const deleteVideo = asyncHandler(async (req,res)=>{
     })
 
     await video.deleteOne();  // delete from db
-    res.status(200).json(new ApiResponse(200,{},"Video deleted successfully"))
+    return res.status(200).json(new ApiResponse(200,{},"Video deleted successfully"))
 })
 
 const togglePublishedStatus = asyncHandler(async (req,res)=>{
@@ -130,7 +130,7 @@ const togglePublishedStatus = asyncHandler(async (req,res)=>{
 
     video.isPublished = !video.isPublished;     // invert values
     await video.save()
-    res.status(200).json(new ApiResponse(200,video,"Published Status is toggled"))
+    return res.status(200).json(new ApiResponse(200,video,"Published Status is toggled"))
 })
 
 export{

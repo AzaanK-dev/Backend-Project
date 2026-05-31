@@ -132,7 +132,7 @@ const renewAccessToken = asyncHandler(async (req,res)=>{   // endpoint for refre
 
         const {accessToken,refreshToken: newRefreshToken} = await generateAccessAndRefreshTokens(user._id);
 
-        res.status(200)
+        return res.status(200)
         .cookie("accessToken",accessToken,cookieOptions)
         .cookie("refreshToken",newRefreshToken,cookieOptions)
         .json(
