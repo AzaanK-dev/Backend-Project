@@ -160,11 +160,10 @@ const changePassword = asyncHandler(async (req,res)=>{
 
 const updateAccountDetails = asyncHandler(async (req,res)=>{
     const {newEmail,newFullName} = req.body
-    if(!newEmail) throw new ApiError(400,"Email is required!")
+    if(!newEmail && !newFullName) throw new ApiError(400, "At least one field is required!")
 
-    const updateFields = {   // update email
-        email: newEmail
-    }
+    const updateFields = {}  
+    if(newEmail) updateFields.email = newEmail;  // update email only if provided else keep old one
     if(newFullName) updateFields.fullName = newFullName;  // update fullname only if provided
     
     const user = await User
