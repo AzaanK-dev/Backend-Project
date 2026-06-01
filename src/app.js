@@ -19,11 +19,15 @@ app.use(cookieParser())  // config for cookies in browser
 import userRouter from "./routes/user.routes.js";
 import videoRouter from "./routes/video.routes.js";
 import commentRouter from "./routes/comment.routes.js"
+import dashboardRouter from "./routes/dashboard.routes.js"
+import likeRouter from "./routes/like.routes.js"
 
 app.use("/api/v1/users",userRouter)     // declare routes
 // http://localhost:8000//api/v1/users/register
 
 app.use("/api/v1/videos",videoRouter)
 app.use("/api/v1/comments",commentRouter)
+app.use("/api/v1/dashboard",dashboardRouter)
+app.use("/api/v1/likes",likeRouter)
 
 export default app;
